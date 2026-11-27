@@ -1,6 +1,6 @@
 {
-  "name": "Dopamilk Event POS",
-  "short_name": "Dopa POS",
+  "name": "Automasi Pencatatan Event Dopa",
+  "short_name": "Event Dopa",
   "description": "Pencatatan order tenant event Dopamilk",
   "start_url": "./",
   "scope": "./",

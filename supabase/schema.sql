@@ -24,11 +24,17 @@ create table if not exists public.order_items (
   menu_name   text        not null,
   size        text        not null check (size in ('R', 'L')),
   price       integer     not null check (price >= 0),
+  payment     text        not null default 'cash' check (payment in ('cash', 'qris')),
   created_at  timestamptz not null default now(),
   voided      boolean     not null default false,
   voided_at   timestamptz,
   updated_at  timestamptz not null default now()
 );
+
+-- 2a) Untuk database yang SUDAH dibuat sebelum ada fitur pembayaran:
+--     menambahkan kolom payment (aman dijalankan berulang; data lama jadi 'cash').
+alter table public.order_items
+  add column if not exists payment text not null default 'cash' check (payment in ('cash', 'qris'));
 
 create index if not exists order_items_event_idx on public.order_items (event_id, created_at);
 create index if not exists events_created_idx    on public.events (created_at desc);
@@ -66,6 +72,15 @@ create policy "events_all_authenticated" on public.events
 
 create policy "order_items_all_authenticated" on public.order_items
   for all to authenticated using (true) with check (true);
+
+-- 3b) Izin akses Data API: hanya user yang sudah login (bukan anon / orang asing).
+--     Ini wajib kalau saat membuat project opsi "Grant API access to new tables
+--     automatically" tidak dicentang; kalau dicentang pun tetap aman.
+grant usage on schema public to authenticated;
+grant select, insert, update, delete on public.events      to authenticated;
+grant select, insert, update, delete on public.order_items to authenticated;
+revoke all on public.events      from anon;
+revoke all on public.order_items from anon;
 
 -- 4) Realtime: supaya kalau 2 HP kasir dipakai bareng, angkanya muncul di keduanya.
 do $$

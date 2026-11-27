@@ -74,6 +74,35 @@
     });
     y += 30;
 
+    // ----- Rekap per metode pembayaran -----
+    const PAYC = { cash: [47, 158, 91], qris: [112, 72, 232] };
+    doc.setTextColor(...BLUE);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.text("Rekap per metode pembayaran", M, y);
+    doc.autoTable({
+      startY: y + 3,
+      margin: { left: M, right: M },
+      head: [["Metode", "Total cup", "Omset"]],
+      body: [
+        ["Cash", stats.byPay.cash.cups, U.rupiah(stats.byPay.cash.revenue)],
+        ["QRIS", stats.byPay.qris.cups, U.rupiah(stats.byPay.qris.revenue)],
+      ],
+      foot: [["TOTAL", { content: String(stats.cups), styles: { halign: "center" } }, { content: U.rupiah(stats.revenue), styles: { halign: "right" } }]],
+      theme: "grid",
+      styles: { fontSize: 9.5, cellPadding: 2.2, lineColor: [220, 214, 204], lineWidth: 0.2 },
+      headStyles: { fillColor: BLUE, textColor: 255, halign: "center" },
+      footStyles: { fillColor: ORANGE, textColor: [30, 30, 30], fontStyle: "bold" },
+      columnStyles: { 1: { halign: "center" }, 2: { halign: "right" } },
+      didParseCell: (d) => {
+        if (d.section === "body" && d.column.index === 0) {
+          d.cell.styles.textColor = d.row.index === 0 ? PAYC.cash : PAYC.qris;
+          d.cell.styles.fontStyle = "bold";
+        }
+      },
+    });
+    y = doc.lastAutoTable.finalY + 10;
+
     // ----- Rekap per menu -----
     const menuRows = Object.values(stats.byMenu).sort((a, b) => b.cups - a.cups || a.name.localeCompare(b.name));
     doc.setTextColor(...BLUE);
@@ -116,7 +145,7 @@
         }
         prevActive = it;
       }
-      return [idx + 1, U.fmtTime(it.created_at), it.menu_name, it.size === "L" ? "Large" : "Regular", U.rupiah(it.price), status];
+      return [idx + 1, U.fmtTime(it.created_at), it.menu_name, it.size === "L" ? "Large" : "Regular", it.payment === "qris" ? "QRIS" : "Cash", U.rupiah(it.price), status];
     });
 
     const afterY = doc.lastAutoTable.finalY + 10;
@@ -135,16 +164,16 @@
     doc.autoTable({
       startY: startY + 8,
       margin: { left: M, right: M, bottom: 18 },
-      head: [["No", "Jam", "Menu", "Ukuran", "Harga", "Status"]],
-      body: logRows.length ? logRows : [[{ content: "Belum ada pencatatan", colSpan: 6, styles: { halign: "center", textColor: GREY } }]],
+      head: [["No", "Jam", "Menu", "Ukuran", "Bayar", "Harga", "Status"]],
+      body: logRows.length ? logRows : [[{ content: "Belum ada pencatatan", colSpan: 7, styles: { halign: "center", textColor: GREY } }]],
       theme: "striped",
       styles: { fontSize: 8.5, cellPadding: 1.8 },
       headStyles: { fillColor: BLUE, textColor: 255 },
       alternateRowStyles: { fillColor: [252, 249, 244] },
-      columnStyles: { 0: { halign: "center", cellWidth: 12 }, 1: { cellWidth: 22, fontStyle: "bold" }, 3: { cellWidth: 20 }, 4: { halign: "right", cellWidth: 26 }, 5: { cellWidth: 38 } },
+      columnStyles: { 0: { halign: "center", cellWidth: 12 }, 1: { cellWidth: 22, fontStyle: "bold" }, 3: { cellWidth: 20 }, 4: { cellWidth: 16 }, 5: { halign: "right", cellWidth: 26 }, 6: { cellWidth: 38 } },
       didParseCell: (d) => {
-        if (d.section === "head" && d.column.index === 4) d.cell.styles.halign = "right";
-        if (d.section === "body" && d.row.raw && String(d.row.raw[5] || "").startsWith("BATAL")) {
+        if (d.section === "head" && d.column.index === 5) d.cell.styles.halign = "right";
+        if (d.section === "body" && d.row.raw && String(d.row.raw[6] || "").startsWith("BATAL")) {
           d.cell.styles.textColor = [170, 170, 170];
           d.cell.styles.fontStyle = "italic";
         }
@@ -159,7 +188,7 @@
       doc.setFont("helvetica", "normal");
       doc.setFontSize(8);
       doc.setTextColor(...GREY);
-      doc.text(brand + " Event POS  |  " + event.name, M, H - 8);
+      doc.text("Automasi Pencatatan Event Dopa  |  " + event.name, M, H - 8);
       doc.text("Halaman " + p + " / " + pages, W - M, H - 8, { align: "right" });
     }
     return doc;

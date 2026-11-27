@@ -1,4 +1,4 @@
-# Dopamilk Event POS
+# Automasi Pencatatan Event Dopa
 
 Alat catat order untuk tenant Dopamilk di event. Tap menu = 1 cup tercatat lengkap dengan jam:menit:detik. Selesai event, total cup dan omset langsung kelihatan dan bisa diunduh jadi PDF.
 
@@ -10,8 +10,9 @@ Alat catat order untuk tenant Dopamilk di event. Tap menu = 1 cup tercatat lengk
 - Tombol **−** di tiap kartu membatalkan pesanan terakhir menu itu. Setiap tap juga muncul notifikasi dengan tombol **Batal** (4,5 detik).
 - **Riwayat**: semua pencatatan lengkap dengan jam:menit:detik, urut terbaru di atas. Tiap baris bisa **Hapus** atau **Pulihkan**. Pesanan yang dihapus tidak benar-benar hilang (hanya ditandai batal), jadi jejaknya tetap ada.
 - Baris yang menu dan ukurannya sama dan masuk dalam 3 detik dari sebelumnya diberi tanda **⚠ mirip dobel**. Itu untuk mengecek tap dobel. Selang waktunya bisa diubah di `js/config.js`.
+- **Pembayaran Cash / QRIS**: pilih metode di bar bawah (di laptop: di panel samping), lalu tiap tap menu dicatat dengan metode yang sedang aktif. Pilihan terakhir diingat di perangkat itu. Salah pilih? Ketuk chip **Cash/QRIS** di baris Riwayat untuk menggantinya. Omset Cash dan QRIS tampil di header, Rekap, dan PDF.
 - Jam real-time dan tanggal di header, plus nama event dan tanggal event.
-- **Rekap & PDF**: total cup, total omset, rekap per menu, rincian per pencatatan. PDF-nya berisi info event, ringkasan, rekap per menu, dan rincian jam. Baris yang dibatalkan ditandai BATAL dan tidak dihitung.
+- **Rekap & PDF**: total cup, total omset, rekap per metode bayar, rekap per menu, rincian per pencatatan. PDF-nya berisi info event, ringkasan, rekap Cash/QRIS, rekap per menu, dan rincian jam (lengkap dengan kolom Bayar). Baris yang dibatalkan ditandai BATAL dan tidak dihitung.
 - **Tampilan menyesuaikan layar.** HP (portrait dan landscape), tablet, dan laptop punya tata letak sendiri. Di laptop atau tablet landscape besar, panel **Pencatatan terbaru** selalu terlihat di samping menu (lengkap dengan tombol Hapus), jadi tidak perlu buka popup Riwayat. Di HP dan tablet portrait, tombol Riwayat dan Rekap ada di bar bawah.
 - Bisa dipakai tanpa sinyal setelah dibuka sekali (Add to Home Screen).
 - Kalau dipakai di 2 HP sekaligus (login akun yang sama), angkanya tampil real-time di keduanya.
@@ -51,10 +52,13 @@ Alat catat order untuk tenant Dopamilk di event. Tap menu = 1 cup tercatat lengk
 3. Buat event tes, coba tap beberapa menu, cek di **Table Editor** Supabase bahwa datanya masuk, lalu hapus event tes.
 4. Pastikan jam HP diatur otomatis (Automatic date & time), karena jam pencatatan memakai jam HP.
 
+### Update dari versi sebelumnya (fitur Cash/QRIS)
+Kalau database Supabase sudah dibuat sebelum fitur pembayaran ada, buka **SQL Editor > New query**, paste isi `supabase/migrate_payment.sql`, lalu **Run**. Aman dijalankan berulang, dan data lama otomatis tercatat sebagai Cash. Setelah itu push kode terbaru ke GitHub.
+
 ## Pakai di event
 
 1. Isi **nama event / tenant** dan tanggal, lalu **Mulai catat order**.
-2. Tap menu setiap ada pesanan. Salah tap? Tekan **Batal** di notifikasi, atau **−** di kartu menu.
+2. Pilih **Cash** atau **QRIS** di bar bawah, lalu tap menu setiap ada pesanan. Ganti metode kapan saja sesuai pembeli berikutnya. Salah tap? Tekan **Batal** di notifikasi, atau **−** di kartu menu.
 3. Ragu ada dobel? Buka **Riwayat** dan lihat jam serta tanda ⚠.
 4. Selesai: **Rekap & PDF**, lalu **Unduh PDF**. Setelah itu **Akhiri event** (event bisa dibuka lagi kapan saja).
 
@@ -68,4 +72,4 @@ Semua ada di `js/menu.js` (nama, harga Regular, selisih Large). Untuk harga prom
 
 - **Update aplikasi**: setelah push versi baru, perubahan muncul pada pembukaan kedua (karena cache offline).
 - **Hapus event** hanya menyembunyikan dari daftar. Datanya tetap ada di Supabase.
-- **Struktur**: `index.html`, `css/style.css`, `js/` (config, menu, util, store, cloud, pdf, app), `js/vendor/` (jsPDF dan supabase-js disimpan lokal supaya tetap jalan offline), `supabase/schema.sql`, `sw.js` + `manifest.webmanifest` (mode offline dan Add to Home Screen).
+- **Struktur**: `index.html`, `css/style.css`, `js/` (config, menu, util, store, cloud, pdf, app), `js/vendor/` (jsPDF dan supabase-js disimpan lokal supaya tetap jalan offline), `supabase/schema.sql` + `supabase/migrate_payment.sql`, `sw.js` + `manifest.webmanifest` (mode offline dan Add to Home Screen).

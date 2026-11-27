@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#1e4da1">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="Dopa POS">
-  <title>Dopamilk Event POS</title>
+  <meta name="apple-mobile-web-app-title" content="Event Dopa">
+  <title>Automasi Pencatatan Event Dopa</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="img/icon-192.png">
   <link rel="apple-touch-icon" href="img/icon-192.png">
@@ -20,9 +20,9 @@
     <div class="topbar">
       <button id="btnBack" class="icon-btn hidden" aria-label="Kembali ke daftar event">&#8592;</button>
       <div class="tb-main">
-        <div id="tbTitle" class="tb-title">Dopamilk Event POS</div>
+        <div id="tbTitle" class="tb-title wrap">Automasi Pencatatan Event Dopa</div>
         <div class="tb-sub">
-          <span id="tbSub">Pencatatan order tenant</span>
+          <span id="tbSub">Pencatatan order tenant Dopamilk</span>
           <button id="syncPill" class="pill pill-local" type="button">Mode lokal</button>
         </div>
       </div>
@@ -33,7 +33,7 @@
     </div>
     <div id="totals" class="totals hidden">
       <div class="tot"><span>CUP TERJUAL</span><b id="totCups">0</b></div>
-      <div class="tot tot-rev"><span>TOTAL OMSET</span><b id="totRev">Rp 0</b></div>
+      <div class="tot tot-rev"><span>TOTAL OMSET</span><b id="totRev">Rp 0</b><div id="paySum" class="pay-sum"></div></div>
     </div>
   </header>
 
@@ -80,6 +80,13 @@
         <h2>Pencatatan terbaru</h2>
         <div id="sideSummary" class="muted"></div>
       </div>
+      <div class="side-pay">
+        <div class="muted side-pay-label">Tap berikutnya dicatat sebagai:</div>
+        <div class="pay-toggle" role="group" aria-label="Metode pembayaran untuk tap berikutnya">
+          <button type="button" class="pay-btn" data-pay="cash">Cash</button>
+          <button type="button" class="pay-btn" data-pay="qris">QRIS</button>
+        </div>
+      </div>
       <label class="check"><input type="checkbox" id="chkSideVoided"> <span>Tampilkan yang dibatalkan</span></label>
       <ul id="sideList" class="hist-list"></ul>
       <div class="side-actions">
@@ -90,8 +97,14 @@
   </section>
 
   <footer id="bottomBar" class="bottombar hidden">
-    <button id="btnHistory" class="btn btn-ghost" type="button">Riwayat <span id="histBadge" class="badge">0</span></button>
-    <button id="btnRekap" class="btn btn-primary" type="button">Rekap &amp; PDF</button>
+    <div class="pay-toggle" role="group" aria-label="Metode pembayaran untuk tap berikutnya">
+      <button type="button" class="pay-btn" data-pay="cash">Cash</button>
+      <button type="button" class="pay-btn" data-pay="qris">QRIS</button>
+    </div>
+    <div class="bb-row">
+      <button id="btnHistory" class="btn btn-ghost" type="button">Riwayat <span id="histBadge" class="badge">0</span></button>
+      <button id="btnRekap" class="btn btn-primary" type="button">Rekap &amp; PDF</button>
+    </div>
   </footer>
 
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
@@ -125,6 +138,7 @@
         <div><span>Total cup</span><b id="rkCups">0</b></div>
         <div class="rk-rev"><span>Total omset</span><b id="rkRev">Rp 0</b></div>
       </div>
+      <div id="rkPay" class="rekap-pay"></div>
       <div id="rkMeta" class="muted center"></div>
       <div class="table-wrap">
         <table class="rekap-table">

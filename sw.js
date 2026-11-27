@@ -1,7 +1,7 @@
 // Service worker: bikin aplikasi tetap bisa dibuka walau tidak ada sinyal di lokasi event.
 // Strategi: tampilkan dari cache dulu (cepat), perbarui cache di belakang layar.
 // Catatan: setelah kamu deploy versi baru, perubahan muncul pada pembukaan KEDUA.
-const CACHE = "dopa-pos-v1";
+const CACHE = "dopa-pos-v3";
 const SHELL = [
   "./", "index.html", "manifest.webmanifest",
   "css/style.css",

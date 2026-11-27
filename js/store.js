@@ -92,8 +92,11 @@
       .sort((a, b) => t(a.created_at) - t(b.created_at) || (a.id < b.id ? -1 : 1));
   }
 
-  // menu: objek dari DOPA_MENU.items ; size: "R" | "L"
-  function addItem(eventId, menu, size) {
+  // metode pembayaran: "cash" | "qris" (data lama tanpa kolom ini dianggap cash)
+  const payOf = (it) => (it && it.payment === "qris" ? "qris" : "cash");
+
+  // menu: objek dari DOPA_MENU.items ; size: "R" | "L" ; payment: "cash" | "qris"
+  function addItem(eventId, menu, size, payment) {
     const extra = size === "L" ? window.DOPA_MENU.LARGE_EXTRA : 0;
     const now = U.nowISO();
     const it = {
@@ -103,6 +106,7 @@
       menu_name: menu.name,
       size: size === "L" ? "L" : "R",
       price: menu.price + extra,
+      payment: payment === "qris" ? "qris" : "cash",
       created_at: now,
       voided: false,
       voided_at: null,
@@ -126,6 +130,22 @@
     return it;
   }
 
+  function setPayment(id, payment) {
+    const it = items.find((i) => i.id === id);
+    const pay = payment === "qris" ? "qris" : "cash";
+    if (!it || payOf(it) === pay) return it || null;
+    it.payment = pay;
+    it.updated_at = U.nowISO();
+    it._dirty = true;
+    commit("item");
+    return it;
+  }
+
+  const togglePayment = (id) => {
+    const it = items.find((i) => i.id === id);
+    return it ? setPayment(id, payOf(it) === "cash" ? "qris" : "cash") : null;
+  };
+
   const voidItem = (id) => setVoided(id, true);
   const restoreItem = (id) => setVoided(id, false);
 
@@ -140,12 +160,16 @@
   function stats(eventId) {
     const all = itemsOf(eventId);
     const byMenu = {};
+    const byPay = { cash: { cups: 0, revenue: 0 }, qris: { cups: 0, revenue: 0 } };
     let cups = 0, revenue = 0, regular = 0, large = 0, voidedCount = 0;
     let first = null, last = null;
     all.forEach((i) => {
       if (i.voided) { voidedCount++; return; }
       cups++;
       revenue += i.price;
+      const pk = payOf(i);
+      byPay[pk].cups++;
+      byPay[pk].revenue += i.price;
       if (i.size === "L") large++; else regular++;
       if (!first) first = i.created_at;
       last = i.created_at;
@@ -154,7 +178,7 @@
       m.cups++;
       m.revenue += i.price;
     });
-    return { cups, revenue, regular, large, voidedCount, first, last, byMenu, total: all.length };
+    return { cups, revenue, regular, large, voidedCount, first, last, byMenu, byPay, total: all.length };
   }
 
   // ---------- Dipakai cloud.js ----------
@@ -223,7 +247,7 @@
   window.DopaStore = {
     onChange: (fn) => { listeners.add(fn); return () => listeners.delete(fn); },
     listEvents, getEvent, createEvent, updateEvent, deleteEvent,
-    itemsOf, addItem, voidItem, restoreItem, voidLastOf, stats,
+    itemsOf, addItem, voidItem, restoreItem, voidLastOf, stats, payOf, setPayment, togglePayment,
     unsynced, pendingCount, mergeRemote, mergeRemoteMany, applyPushResult,
     getActiveId, setActiveId,
     saveFailed: () => saveFailed,

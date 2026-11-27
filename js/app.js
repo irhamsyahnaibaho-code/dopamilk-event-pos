@@ -14,7 +14,7 @@
   const el = {
     header: $("header"), btnBack: $("btnBack"), tbTitle: $("tbTitle"), tbSub: $("tbSub"), syncPill: $("syncPill"),
     clockTime: $("clockTime"), clockDate: $("clockDate"),
-    totals: $("totals"), totCups: $("totCups"), totRev: $("totRev"),
+    totals: $("totals"), totCups: $("totCups"), totRev: $("totRev"), paySum: $("paySum"), rkPay: $("rkPay"),
     viewEvents: $("viewEvents"), viewOrder: $("viewOrder"),
     inpName: $("inpEventName"), inpDate: $("inpEventDate"), btnCreate: $("btnCreate"),
     eventList: $("eventList"), eventEmpty: $("eventEmpty"), accountBox: $("accountBox"),
@@ -36,11 +36,44 @@
   // Tinggi header -> variabel CSS (dipakai panel samping & kolom sticky)
   // ---------------------------------------------------------------
   function syncTopHeight() {
-    document.documentElement.style.setProperty("--top-h", el.header.offsetHeight + "px");
+    const root = document.documentElement.style;
+    root.setProperty("--top-h", el.header.offsetHeight + "px");
+    root.setProperty("--bottom-h", el.bottomBar.offsetHeight + "px");
   }
-  if ("ResizeObserver" in window) new ResizeObserver(syncTopHeight).observe(el.header);
+  if ("ResizeObserver" in window) {
+    const ro = new ResizeObserver(syncTopHeight);
+    ro.observe(el.header);
+    ro.observe(el.bottomBar);
+  }
   window.addEventListener("resize", syncTopHeight);
   syncTopHeight();
+
+  // ---------------------------------------------------------------
+  // Metode pembayaran aktif (diingat per perangkat). Tiap tap menu dicatat dengan
+  // metode yang sedang aktif; bisa diganti per baris di Riwayat.
+  // ---------------------------------------------------------------
+  const PAY_LABEL = { cash: "Cash", qris: "QRIS" };
+  const LS_PAY = "dopa.pay.v1";
+  let payMode = "cash";
+  try { payMode = localStorage.getItem(LS_PAY) === "qris" ? "qris" : "cash"; } catch (e) {}
+
+  function renderPayToggle() {
+    document.body.dataset.paymode = payMode;
+    document.querySelectorAll(".pay-btn").forEach((b) => {
+      const on = b.dataset.pay === payMode;
+      b.classList.toggle("active", on);
+      b.setAttribute("aria-pressed", on ? "true" : "false");
+    });
+  }
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest(".pay-btn");
+    if (!b) return;
+    payMode = b.dataset.pay === "qris" ? "qris" : "cash";
+    try { localStorage.setItem(LS_PAY, payMode); } catch (err) {}
+    renderPayToggle();
+    vibrate(12);
+  });
+  renderPayToggle();
 
   // ---------------------------------------------------------------
   // Jam real-time
@@ -171,8 +204,9 @@
     el.totals.classList.add("hidden");
     el.bottomBar.classList.add("hidden");
     el.btnBack.classList.add("hidden");
-    el.tbTitle.textContent = "Dopamilk Event POS";
-    el.tbSub.textContent = "Pencatatan order tenant";
+    el.tbTitle.textContent = "Automasi Pencatatan Event Dopa";
+    el.tbTitle.classList.add("wrap");
+    el.tbSub.textContent = "Pencatatan order tenant Dopamilk";
     closeModal(el.modalHistory);
     closeModal(el.modalRekap);
     if (!el.inpDate.value) el.inpDate.value = U.todayYMD();
@@ -278,6 +312,7 @@
     el.bottomBar.classList.remove("hidden");
     el.btnBack.classList.remove("hidden");
     el.tbTitle.textContent = ev.name;
+    el.tbTitle.classList.remove("wrap");
     el.tbSub.textContent = U.fmtDateShort(U.parseYMD(ev.event_date));
     buildMenu();
     updateOrderView();
@@ -306,6 +341,9 @@
     if (lastRev !== null && lastRev !== s.revenue) bump(el.totRev.parentNode);
     lastCups = s.cups;
     lastRev = s.revenue;
+    el.paySum.innerHTML =
+      '<span class="ps">Cash ' + U.rupiah(s.byPay.cash.revenue) + '</span>' +
+      '<span class="ps">QRIS ' + U.rupiah(s.byPay.qris.revenue) + '</span>';
 
     // angka di tiap tile
     el.menuGrid.querySelectorAll(".tile").forEach((tile) => {
@@ -347,11 +385,11 @@
 
     if (btn.dataset.act === "add") {
       const size = btn.dataset.size === "L" ? "L" : "R";
-      const it = Store.addItem(currentId, menu, size);
+      const it = Store.addItem(currentId, menu, size, payMode);
       flashTile(tile);
       vibrate(18);
       showToast({
-        msg: "+1 " + menu.name + (size === "L" ? " (Large)" : ""),
+        msg: "+1 " + menu.name + (size === "L" ? " (Large)" : "") + " · " + PAY_LABEL[payMode],
         sub: U.fmtTime(it.created_at) + " · " + U.rupiah(it.price),
         undo: { label: "Batal", fn: () => { Store.voidItem(it.id); vibrate(30); } },
       });
@@ -410,12 +448,16 @@
         const act = closed ? "" : it.voided
           ? '<button type="button" class="h-btn restore" data-h="restore" data-id="' + it.id + '">Pulihkan</button>'
           : '<button type="button" class="h-btn" data-h="void" data-id="' + it.id + '">Hapus</button>';
+        const pk = Store.payOf(it);
+        const chip = closed || it.voided
+          ? '<span class="pay-chip ' + pk + '">' + PAY_LABEL[pk] + "</span>"
+          : '<button type="button" class="pay-chip ' + pk + '" data-h="pay" data-id="' + it.id + '" aria-label="Ganti metode pembayaran">' + PAY_LABEL[pk] + "</button>";
         return (
           '<li class="h-row' + (it.voided ? " voided" : "") + (dup ? " dup" : "") + '">' +
           '<div><span class="h-no">#' + no + '</span><span class="h-time">' + U.fmtTime(it.created_at) + "</span></div>" +
           '<div class="h-info"><b>' + U.esc(it.menu_name) + "</b><small>" + (it.size === "L" ? "Large" : "Regular") + ' · <span class="nw">' + U.rupiah(it.price) + "</span>" +
           (it.voided ? " · batal " + (it.voided_at ? U.fmtTime(it.voided_at) : "") : "") + "</small>" +
-          (dup ? '<span class="h-warn">⚠ mirip dobel</span>' : "") + "</div>" +
+          '<div class="h-tags">' + chip + (dup ? '<span class="h-warn">⚠ mirip dobel</span>' : "") + "</div></div>" +
           act + "</li>"
         );
       })
@@ -440,6 +482,7 @@
     const b = e.target.closest("[data-h]");
     if (!b) return;
     if (b.dataset.h === "void") Store.voidItem(b.dataset.id);
+    else if (b.dataset.h === "pay") Store.togglePayment(b.dataset.id);
     else Store.restoreItem(b.dataset.id);
   }
 
@@ -461,6 +504,9 @@
     el.rekapEvent.textContent = ev.name + " · " + U.fmtDateLong(U.parseYMD(ev.event_date));
     el.rkCups.textContent = s.cups;
     el.rkRev.textContent = U.rupiah(s.revenue);
+    el.rkPay.innerHTML = ["cash", "qris"].map((k) =>
+      '<div class="rk-pay ' + k + '"><span>' + PAY_LABEL[k].toUpperCase() + "</span><b>" + U.rupiah(s.byPay[k].revenue) + "</b><small>" + s.byPay[k].cups + " cup</small></div>"
+    ).join("");
     el.rkMeta.textContent = s.first
       ? "Order pertama " + U.fmtTime(s.first) + " · terakhir " + U.fmtTime(s.last) + " · Regular " + s.regular + " / Large " + s.large
       : "Belum ada pesanan.";
