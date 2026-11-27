@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#1e4da1">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Dopa POS">
+  <title>Dopamilk Event POS</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="img/icon-192.png">
+  <link rel="apple-touch-icon" href="img/icon-192.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="sticky-top" id="header">
+    <div class="topbar">
+      <button id="btnBack" class="icon-btn hidden" aria-label="Kembali ke daftar event">&#8592;</button>
+      <div class="tb-main">
+        <div id="tbTitle" class="tb-title">Dopamilk Event POS</div>
+        <div class="tb-sub">
+          <span id="tbSub">Pencatatan order tenant</span>
+          <button id="syncPill" class="pill pill-local" type="button">Mode lokal</button>
+        </div>
+      </div>
+      <div class="clock" aria-live="off">
+        <div id="clockTime" class="clock-time">00:00:00</div>
+        <div id="clockDate" class="clock-date"></div>
+      </div>
+    </div>
+    <div id="totals" class="totals hidden">
+      <div class="tot"><span>CUP TERJUAL</span><b id="totCups">0</b></div>
+      <div class="tot tot-rev"><span>TOTAL OMSET</span><b id="totRev">Rp 0</b></div>
+    </div>
+  </header>
+
+  <!-- ===== Daftar event ===== -->
+  <section id="viewEvents" class="view view-events">
+    <div class="col-new">
+      <div class="card">
+        <h2>Mulai event baru</h2>
+        <label class="field">
+          <span>Nama event / tenant</span>
+          <input id="inpEventName" type="text" autocomplete="off" placeholder="mis. UII Fest 2026 - Tenant Dopamilk" maxlength="80">
+        </label>
+        <label class="field">
+          <span>Tanggal event</span>
+          <input id="inpEventDate" type="date">
+        </label>
+        <button id="btnCreate" class="btn btn-primary btn-big" type="button">Mulai catat order</button>
+      </div>
+    </div>
+
+    <div class="col-list">
+      <h3 class="section-title">Event sebelumnya</h3>
+      <ul id="eventList" class="event-list"></ul>
+      <p id="eventEmpty" class="muted center hidden">Belum ada event. Buat yang pertama di atas.</p>
+    </div>
+
+    <div id="accountBox" class="account hidden"></div>
+  </section>
+
+  <!-- ===== Layar order ===== -->
+  <section id="viewOrder" class="view view-order hidden">
+    <div class="order-main">
+      <div id="closedBanner" class="banner hidden">
+        <span>Event ini sudah ditutup (hanya bisa dilihat).</span>
+        <button id="btnReopen" class="btn btn-small" type="button">Buka kembali</button>
+      </div>
+      <div id="menuGrid"></div>
+      <div class="spacer"></div>
+    </div>
+
+    <!-- Panel samping: hanya tampil di layar lebar (laptop / tablet landscape besar) -->
+    <aside id="sidePanel" class="side" aria-label="Pencatatan terbaru">
+      <div>
+        <h2>Pencatatan terbaru</h2>
+        <div id="sideSummary" class="muted"></div>
+      </div>
+      <label class="check"><input type="checkbox" id="chkSideVoided"> <span>Tampilkan yang dibatalkan</span></label>
+      <ul id="sideList" class="hist-list"></ul>
+      <div class="side-actions">
+        <button id="btnSideAll" class="btn btn-ghost" type="button">Semua riwayat</button>
+        <button id="btnSideRekap" class="btn btn-primary" type="button">Rekap &amp; PDF</button>
+      </div>
+    </aside>
+  </section>
+
+  <footer id="bottomBar" class="bottombar hidden">
+    <button id="btnHistory" class="btn btn-ghost" type="button">Riwayat <span id="histBadge" class="badge">0</span></button>
+    <button id="btnRekap" class="btn btn-primary" type="button">Rekap &amp; PDF</button>
+  </footer>
+
+  <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+
+  <!-- ===== Riwayat ===== -->
+  <div id="modalHistory" class="modal hidden" role="dialog" aria-modal="true" aria-label="Riwayat pencatatan">
+    <div class="sheet">
+      <div class="sheet-head">
+        <div>
+          <h2>Riwayat pencatatan</h2>
+          <div id="histSummary" class="muted"></div>
+        </div>
+        <button class="icon-btn" data-close aria-label="Tutup">&#10005;</button>
+      </div>
+      <label class="check"><input type="checkbox" id="chkVoided"> <span>Tampilkan yang dibatalkan</span></label>
+      <ul id="histList" class="hist-list"></ul>
+    </div>
+  </div>
+
+  <!-- ===== Rekap ===== -->
+  <div id="modalRekap" class="modal hidden" role="dialog" aria-modal="true" aria-label="Rekap penjualan">
+    <div class="sheet">
+      <div class="sheet-head">
+        <div>
+          <h2>Rekap penjualan</h2>
+          <div id="rekapEvent" class="muted"></div>
+        </div>
+        <button class="icon-btn" data-close aria-label="Tutup">&#10005;</button>
+      </div>
+      <div class="rekap-big">
+        <div><span>Total cup</span><b id="rkCups">0</b></div>
+        <div class="rk-rev"><span>Total omset</span><b id="rkRev">Rp 0</b></div>
+      </div>
+      <div id="rkMeta" class="muted center"></div>
+      <div class="table-wrap">
+        <table class="rekap-table">
+          <thead><tr><th>Menu</th><th>Reg</th><th>Large</th><th>Cup</th><th>Omset</th></tr></thead>
+          <tbody id="rkBody"></tbody>
+          <tfoot id="rkFoot"></tfoot>
+        </table>
+      </div>
+      <div class="sheet-actions">
+        <button id="btnPdf" class="btn btn-primary btn-big" type="button">Unduh PDF</button>
+        <button id="btnClose" class="btn btn-ghost" type="button">Akhiri event</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Login ===== -->
+  <div id="modalLogin" class="modal hidden" role="dialog" aria-modal="true" aria-label="Login cloud">
+    <div class="sheet sheet-small">
+      <div class="sheet-head">
+        <h2>Login cloud</h2>
+        <button class="icon-btn" data-close aria-label="Tutup">&#10005;</button>
+      </div>
+      <p class="muted">Login sekali supaya data order tersimpan di Supabase dan bisa dibuka dari HP/laptop lain.</p>
+      <form id="loginForm" autocomplete="on">
+        <label class="field"><span>Email</span><input id="inpEmail" type="email" autocomplete="username" required></label>
+        <label class="field"><span>Password</span><input id="inpPass" type="password" autocomplete="current-password" required></label>
+        <div id="loginErr" class="error hidden"></div>
+        <button class="btn btn-primary btn-big" type="submit" id="btnLogin">Masuk</button>
+      </form>
+      <button class="btn btn-ghost btn-block" data-close type="button">Pakai mode lokal dulu</button>
+    </div>
+  </div>
+
+  <script src="js/vendor/jspdf.umd.min.js"></script>
+  <script src="js/vendor/jspdf.plugin.autotable.min.js"></script>
+  <script src="js/vendor/supabase.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/menu.js"></script>
+  <script src="js/util.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/cloud.js"></script>
+  <script src="js/pdf.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
